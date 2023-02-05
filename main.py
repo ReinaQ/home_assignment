@@ -58,15 +58,7 @@ def is_in_specified_games(available_games):
     return len(common_elements) != 0
 
 
-def main(pokemons_link):
-    logging.info("Start to retrieve Pokemons' data")
-
-    pokemons_urls = get_pokemons_urls(pokemons_link)
-    logging.info(f"Get all urls of available Pokemons. Count: {len(pokemons_urls)}")
-
-    pokemons = get_pokemons_data(pokemons_urls)
-    logging.info("Data retrieving completed, start to transform data")
-
+def process_pokemons(pokemons):
     pokemon_df = pd.DataFrame(data=pokemons)
 
     pokemon_df["is_in_specified_games"] = pokemon_df["game_versions"].apply(is_in_specified_games)
@@ -78,9 +70,20 @@ def main(pokemons_link):
                                       / ((0.1 * pokemon_df_game_required["height_dm"]) ** 2)
 
     pokemon_final = pokemon_df_game_required.drop(['is_in_specified_games'], axis=1)
+    return pokemon_final
 
+
+def main(pokemons_link):
+    logging.info("Start to retrieve Pokemons' data")
+
+    pokemons_urls = get_pokemons_urls(pokemons_link)
+    logging.info(f"Get all urls of available Pokemons. Count: {len(pokemons_urls)}")
+
+    pokemons = get_pokemons_data(pokemons_urls)
+    logging.info("Data retrieving completed, start to transform data")
+
+    pokemon_final = process_pokemons(pokemons)
     pokemon_final.to_csv("final_data.csv", index=False)
-
     logging.info("Data saved to current folder as a csv file")
 
 
