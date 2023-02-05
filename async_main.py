@@ -1,3 +1,5 @@
+import asyncio
+import aiohttp
 import logging
 import pandas as pd
 import requests
@@ -34,21 +36,32 @@ def get_pokemons_urls(pokemons_link):
     return pokemons_urls
 
 
-def get_pokemons_data(pokemons_urls):
-    pokemons = []
-    for url in pokemons_urls:
-        response = get_response(url)
-        pokemon = {"name": response["name"],
-                   "id": response["id"],
-                   "base_experience": response["base_experience"],
-                   "weight_hg": response["weight"],
-                   "height_dm": response["height"],
-                   "order": response["order"],
-                   "game_versions": get_pokemon_games(response),
-                   "types": get_pokemon_types(response),
-                   "front_default_sprite_url": response["sprites"]["front_default"]
-                   }
-        pokemons.append(pokemon)
+async def get_pokemon(client, pokemon_url):
+    try:
+        async with client.get(pokemon_url) as response:
+            pokemon_raw = await response.json()
+            pokemon = {"name": pokemon_raw["name"],
+                       "id": pokemon_raw["id"],
+                       "base_experience": pokemon_raw["base_experience"],
+                       "weight_hg": pokemon_raw["weight"],
+                       "height_dm": pokemon_raw["height"],
+                       "order": pokemon_raw["order"],
+                       "game_versions": get_pokemon_games(pokemon_raw),
+                       "types": get_pokemon_types(pokemon_raw),
+                       "front_default_sprite_url": pokemon_raw["sprites"]["front_default"]
+                       }
+            return pokemon
+    except Exception as err:
+        logging.error(err)
+
+
+async def get_pokemons_data(pokemons_urls):
+    async with aiohttp.ClientSession(raise_for_status=True) as client:
+        tasks = []
+        for url in pokemons_urls:
+            tasks.append(asyncio.create_task(get_pokemon(client, url)))
+
+        pokemons = await asyncio.gather(*tasks)
     return pokemons
 
 
@@ -58,13 +71,13 @@ def is_in_specified_games(available_games):
     return len(common_elements) != 0
 
 
-def main(pokemons_link):
+async def main(pokemons_link):
     logging.info("Start to retrieve Pokemons' data")
 
     pokemons_urls = get_pokemons_urls(pokemons_link)
     logging.info(f"Get all urls of available Pokemons. Count: {len(pokemons_urls)}")
 
-    pokemons = get_pokemons_data(pokemons_urls)
+    pokemons = await get_pokemons_data(pokemons_urls)
     logging.info("Data retrieving completed, start to transform data")
 
     pokemon_df = pd.DataFrame(data=pokemons)
@@ -86,4 +99,4 @@ def main(pokemons_link):
 
 if __name__ == "__main__":
     pokemons_base_link = "https://pokeapi.co/api/v2/pokemon?limit=100&offset=0"
-    main(pokemons_base_link)
+    asyncio.run(main(pokemons_base_link))
