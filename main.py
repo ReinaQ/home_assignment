@@ -11,7 +11,7 @@ def get_response(url):
         response.raise_for_status()
         return response.json()
     except Exception as err:
-        logging.error(err)
+        logging.error(f"failed to get {url} due to {err}")
 
 
 def get_pokemon_types(pokemon):

@@ -13,7 +13,7 @@ def get_response(url):
         response.raise_for_status()
         return response.json()
     except Exception as err:
-        logging.error(err)
+        logging.error(f"failed to get {url} due to {err}")
 
 
 def get_pokemon_types(pokemon):
@@ -52,7 +52,7 @@ async def get_pokemon(client, pokemon_url):
                        }
             return pokemon
     except Exception as err:
-        logging.error(err)
+        logging.error(f"failed to get {pokemon_url} due to {err}")
 
 
 async def get_pokemons_data(pokemons_urls):
